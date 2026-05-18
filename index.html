@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Veilborn — The Dying Realm</title>
+
+<!-- Farcaster Frames v2 SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@farcaster/frame-sdk@latest/dist/index.umd.js"></script>
+
+<!-- Wagmi + Viem for Base blockchain payments -->
+<script src="https://cdn.jsdelivr.net/npm/viem@2.21.19/dist/viem.umd.min.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0e0c1a;--surface:#1a1630;--surface2:#221e3d;--surface3:#2c2850;
+  --violet:#9d4edd;--violet-l:#c77dff;--violet-ll:#e0aaff;
+  --crimson:#e63946;--crimson-l:#ff6b6b;
+  --amber:#ffd60a;--amber-l:#ffee99;
+  --teal:#06d6a0;--teal-l:#80ffdb;
+  --base:#0052ff;--base-l:#4d8bff;  /* Base chain blue */
+  --text:#f0e6ff;--text2:#c4aef0;--text3:#8870c0;--text4:#5a4880;
+  --b1:rgba(157,78,221,0.2);--b2:rgba(157,78,221,0.4);--b3:rgba(157,78,221,0.7);
+  --b-amber:rgba(255,214,10,0.4);--b-teal:rgba(6,214,160,0.4);--b-base:rgba(0,82,255,0.4);
+  --fs-xs:11px;--fs-sm:13px;--fs-md:15px;--fs-lg:18px;--fs-xl:22px;--fs-2xl:28px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Cormorant Garamond',serif;color:var(--text);font-size:var(--fs-md)}
+
+/* ATMOSPHERE */
+#atmo{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.orb-bg{position:absolute;border-radius:50%;filter:blur(80px);animation:orb-drift ease-in-out infinite alternate}
+@keyframes orb-drift{from{transform:translate(0,0)}to{transform:translate(20px,30px)}}
+.particle{position:absolute;border-radius:50%;animation:rise linear infinite}
+@keyframes rise{0%{transform:translateY(100vh);opacity:0}15%{opacity:1}85%{opacity:.4}100%{transform:translateY(-60px);opacity:0}}
+.sigil-bg{position:absolute;font-family:'UnifrakturMaguntia',cursive;color:rgba(157,78,221,0.06);animation:sfade ease-in-out infinite}
+@keyframes sfade{0%,100%{opacity:0}50%{opacity:1}}
+
+/* APP */
+#app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;max-width:430px;margin:0 auto}
+
+/* TOPBAR */
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 10px;border-bottom:1px solid var(--b2);background:rgba(14,12,26,.95);backdrop-filter:blur(20px);flex-shrink:0}
+.tb-brand{font-family:'UnifrakturMaguntia',cursive;font-size:var(--fs-2xl);color:var(--violet-l);letter-spacing:1px;text-shadow:0 0 24px rgba(157,78,221,.6)}
+.tb-sub{font-family:'Cormorant Garamond',serif;font-size:var(--fs-xs);color:var(--text3);letter-spacing:4px;font-style:italic;margin-top:1px}
+.tb-right{text-align:right}
+.tb-name{font-family:'Cinzel Decorative',serif;font-size:var(--fs-sm);color:var(--amber);letter-spacing:1px}
+.tb-rank{font-size:var(--fs-xs);color:var(--text3);font-style:italic;margin-top:2px}
+
+/* WALLET BAR */
+#walletbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px;background:rgba(14,12,26,.85);
+  border-bottom:1px solid var(--b1);flex-shrink:0;
+}
+.wallet-addr{font-family:'Cinzel Decorative',serif;font-size:var(--fs-xs);color:var(--teal)}
+.wallet-bal{font-size:var(--fs-xs);color:var(--text3);font-style:italic}
+.connect-wallet-btn{
+  font-family:'Cinzel Decorative',serif;font-size:var(--fs-xs);
+  color:var(--base-l);cursor:pointer;
+  border:1px solid var(--b-base);border-radius:20px;
+  padding:4px 12px;background:rgba(0,82,255,.1);
+  transition:all .2s;
+}
+
+/* RESOURCE BAR */
+#resbar{display:flex;background:rgba(14,12,26,.9);border-bottom:1px solid var(--b1);flex-shrink:0}
+.res{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 4px 6px;border-right:1px solid var(--b1);gap:2px}
+.res:last-child{border-right:none}
+.res-icon{font-size:16px;line-height:1}
+.res-val{font-family:'Cinzel Decorative',serif;font-size:var(--fs-sm);font-weight:700;line-height:1.1}
+.rv-violet{color:var(--violet-l)}.rv-crimson{color:var(--crimson-l)}.rv-amber{color:var(--amber)}.rv-teal{color:var(--teal-l)}
+.res-lbl{font-size:var(--fs-xs);color:var(--text3);letter-spacing:.5px}
+
+/* CONTENT */
+#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+#content::-webkit-scrollbar{display:none}
+.screen{display:none;flex-direction:column;padding-bottom:90px}
+.screen.active{display:flex}
+
+/* DIVIDERS */
+.sep{display:flex;align-items:center;gap:12px;padding:16px 16px 10px}
+.sep-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--b2),transparent)}
+.sep-title{font-family:'Cinzel Decorative',serif;font-size:var(--fs-md);color:var(--violet-l);white-space:nowrap;letter-spacing:1px}
+.sep-action{font-size:var(--fs-sm);color:var(--teal);cursor:pointer;font-style:italic}
+
+/* RITUAL */
+.ritual-header{text-align:center;padding:16px 16px 4px}
+.ritual-title{font-family:'Cinzel Decorative',serif;font-size:var(--fs-2xl);color:var(--violet-ll);letter-spacing:1px;text-shadow:0 0 30px rgba(157,78,221,.5)}
+.ritual-lore{font-size:var(--fs-md);color:var(--text2);font-style:italic;margin-top:4px;line-height:1.5}
+.drain-bar{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 0 12px;font-size:var(--fs-sm);color:var(--text2);font-style:italic}
+.drain-bar strong{color:var(--teal);font-style:normal;font-family:'Cinzel Decorative',serif;font-size:var(--fs-sm)}
+
+/* HEART */
+.heart-section{display:flex;flex-direction:column;align-items:center;padding:4px 0 16px;gap:14px}
+.heart-outer{position:relative;width:160px;height:160px;cursor:pointer}
+.ring{position:absolute;border-radius:50%;border-style:solid;animation:spin-ring linear infinite}
+.ring-1{inset:-14px;border-width:1.5px;border-color:var(--violet) rgba(157,78,221,.1) var(--violet) rgba(157,78,221,.1);animation-duration:10s}
+.ring-2{inset:-26px;border-width:1px;border-color:var(--crimson) rgba(230,57,70,.08) var(--crimson) rgba(230,57,70,.08);animation-duration:17s;animation-direction:reverse}
+.ring-3{inset:-38px;border-width:1px;border-color:var(--amber) transparent var(--amber) transparent;animation-duration:25s}
+@keyframes spin-ring{to{transform:rotate(360deg)}}
+.heart{width:160px;height:160px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#6a0dad 0%,#3a006f 45%,#1a0035 80%);border:2px solid var(--violet);box-shadow:0 0 30px rgba(157,78,221,.6),0 0 60px rgba(157,78,221,.2),inset 0 0 40px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:60px;user-select:none;position:relative;z-index:1;transition:transform .1s ease}
+.heart:active{transform:scale(.88)}
+.heart.pulse{animation:heart-beat .2s ease}
+@keyframes heart-beat{0%{transform:scale(1)}40%{transform:scale(.85);box-shadow:0 0 50px rgba(230,57,70,.8)}100%{transform:scale(1)}}
+.tap-lore{font-family:'Cormorant Garamond',serif;font-size:var(--fs-md);color:var(--text3);letter-spacing:4px;font-style:italic;text-transform:uppercase}
+.vitae-wrap{width:100%;max-width:280px;padding:0 16px}
+.vitae-row{display:flex;align-items:center;gap:10px}
+.vitae-track{flex:1;height:8px;border-radius:4px;background:var(--surface2);border:1px solid var(--b1);overflow:hidden}
+.vitae-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--crimson),var(--violet-l));transition:width .3s ease}
+.vitae-lbl{font-family:'Cinzel Decorative',serif;font-size:var(--fs-sm);color:var(--text2);min-width:64px;text-align:right}
+.dmg{position:fixed;font-family:'Cinzel Decorative',serif;font-size:22px;font-weight:700;color:var(--amber);pointer-events:none;z-index:9999;animation:dmg-float 1s ease forwards;text-shadow:0 0 12px rgba(255,214,10,.6)}
+@keyframes dmg-float{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-100px)}}
+
+/* RITES */
+.rites-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px 16px}
+.rite{background:var(--surface);border:1.5px solid var(--b1);border-radius:12px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.rite::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(157,78,221,.08),transparent);pointer-events:none}
+.rite:active{transform:scale(.96)}
+.rite.can-afford{border-color:var(--violet-l);box-shadow:0 0 14px rgba(157,78,221,.2)}
+.rite.locked{opacity:.6}
+.rite-em{font-size:30px}
+.rite-name{font-family:'Cinzel Decorative',serif;font-size:var(--fs-sm);color:var(--text);text-align:center}
+.rite-depth{font-size:var(--fs-sm);color:var(--text3);font-style:italic}
+.rite-yield{font-size:var(--fs-sm);color:var(--teal)}
+.rite-cost{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;border:1px solid;font-family:'Cinzel Decorative',serif;font-size:var(--fs-xs)}
+.rite-cost.ichor{color:var(--violet-l);border-color:var(--b2)}
+.rite-cost.marks{color:var(--crimson-l);border-color:rgba(230,57,70,.4)}
+
+/* WHEEL */
+.wheel-chamber{display:flex;flex-direction:column;align-items:center;padding:16px 14px 10px;gap:14px}
+.wheel-title{font-family:'Cinzel Decorative',serif;font-size:var(--fs-xl);color:var(--amber);letter-spacing:2px;text-align:center;text-shadow:0 0 24px rgba(255,214,10,.4)}
+.wheel-lore{font-size:var(--fs-md);color:var(--text2);font-style:italic;text-align:center}
+.wheel-wrap{position:relative;width:280px;height:280px}
+.wheel-pointer{position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-top:24px solid var(--amber);filter:drop-shadow(0 0 8px rgba(255,214,10,.8));z-index:10}
+.wheel-canvas{width:280px;height:280px;border-radius:50%;border:3px solid var(--b3);box-shadow:0 0 30px rgba(157,78,221,.4),inset 0 0 40px rgba(0,0,0,.5);cursor:pointer}
+.wheel-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:48px;height:48px;border-radius:50%;background:radial-gradient(circle,var(--surface3),var(--bg));border:2px solid var(--b3);display:flex;align-items:center;justify-content:center;font-size:22px;z-index:5;box-shadow:0 0 16px rgba(157,78,221,.5)}
+.wheel-result{font-family:'Cinzel Decorative',serif;font-size:var(--fs-md);color:var(--text2);font-style:italic;min-height:22px;text-align:center}
+.wheel-result.win{color:var(--amber);font-style:normal}
+.wheel-result.jackpot{color:var(--crimson-l);font-size:var(--fs-lg);animation:jpulse .5s ease infinite alternate}
+@keyframes jpulse{from{text-shadow:0 0 8px rgba(230,57,70,.5)}to{text-shadow:0 0 20px rgba(230,57,70,.9)}}
+.spin-btn{width:100%;padding:14px;border-radius:12px;border:1.5px solid var(--amber);background:linear-gradient(135deg,rgba(255,214,10,.2),rgba(255,214,10,.05));color:var(--amber);font-family:'Cinzel Decorative',serif;font-size:var(--fs-lg);letter-spacing:1px;cursor:pointer;transition:all .2s}
+.spin-btn:disabled{opacity:.35;cursor:default}
+.tokens-row{display:flex;align-items:center;gap:10px;font-size:var(--fs-md);color:var(--text2);font-style:italic}
+.token-badge{background:rgba(157,78,221,.2);border:1px solid var(--b2);border-radius:20px;padding:4px 14px;font-family:'Cinzel Decorative',serif;font-size:var(--fs-sm);color:var(--violet-ll)}
+.spin-log{padding:0 14px 16px;display:flex;flex-direction:column;gap:6px}
+.spin-entry{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--b1);border-radius:10px;padding:10px 14px}
+.spin-seg{font-size:var(--fs-md);color:var(--text2);font-style:italic}
+.spin-prize{font-family:'Cinzel Decorative',serif;font-size:var(--fs-sm)}
+.spin-prize.win{color:var(--amber)}.spin-prize.loss{color:var(--text4)}
+
+/* LEADERBOARD */
+.rank-tabs{display:flex;gap:0;padding:14px 14px 10px}
+.rank-tab{padding:8px 18px;font-family:'Cinzel Decorative',serif;font-size:var(--fs-sm);border:1px solid var(--b1);color:var(--text3);cursor:pointer;margin-right:-1px;transition:all .2s}
+.rank-tab.active{background:rgba(255,214,10,.15);border-color:var(--amber);color:var(--amber);z-index:1}
+.fallen-list{padding:0 14px;display:flex;flex-direction:column;gap:8px}
+.fallen-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1.5px solid var(--b1);border-radius:12px;padding:12px 14px}
+.fallen-row.me{border-color:var(--violet);background:rgba(157,78,221,.08)}
+.rank-num{font-family:'Cinzel Decorative',serif;font-size:var(--fs-xl);min-width:28px;text-align:center}
+.rn-gold{color:var(--amber)}.rn-silver{color:#c0d0e0}.rn-bronze{color:#d08050}.rn-other{color:var(--text3)}
+.fallen-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:1.5px solid var(--b1);flex-shrink:0;background:var(--surface2)}
+.fallen-info{flex:1}
+.fallen-name{font-family:'Cinzel Decorative',serif;font-size:var(--fs-md);color:var(--text)}
+.fallen-title{font-size:var(--fs-sm);color:var(--text3);font-style:italic;margin-top:2px}
+.fallen-souls{font-family:'Cinzel Decorative',serif;font-size:var(--fs-sm);color:var(--violet-l)}
+
+/* COVENANT */
+.covenant-hero{margin:16px 14px 0;background:var(--surface);border:1.5px solid var(--b2);border-radius:16px;padding:20px 16px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.cov-icon{font-size:56px}
+.cov-title{font-family:'Cinzel Decorative',serif;font-size:var(--fs-xl);color:var(--amber);text-align:center}
+.cov-lore{font-size:var(--fs-md);color:var(--text2);text-align:center;line-height:1.6;font-style:italic;max-width:280px}
+.cov-rewards{display:flex;gap:10px;width:100%}
+.cov-pill{flex:1;background:var(--surface2);border:1px solid var(--b1);border-radius:10px;padding:12px 8px;text-align:center}
+.cov-val{font-family:'Cinzel Decorative',serif;font-size:var(--fs-lg);color:var(--teal)}
+.cov-lbl{font-size:var(--fs-sm);color:var(--text2);margin-top:3px;font-style:italic}
+.cov-sub{font-size:var(--fs-xs);color:var(--text3);margin-top:2px}
+.copy-curse-btn{width:100%;padding:13px;border-radius:12px;border:1.5px solid var(--teal);background:rgba(6,214,160,.1);color:var(--teal);font-family:'Cinzel Decorative',serif;font-size:var(--fs-md);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.bound-list{padding:0 14px 16px;display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.bound-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--b1);border-radius:10px;padding:10px 14px}
+.bound-av{width:36px;height:36px;border-radius:50%;background:var(--surface2);border:1px solid var(--b1);display:flex;align-items:center;justify-content:center;font-size:16px}
+.bound-name{font-size:var(--fs-md);color:var(--text);flex:1;font-style:italic}
+.bound-bonus{font-family:'Cinzel Decorative',serif;font-size:var(--fs-sm);color:var(--amber)}
+
+/* MARKET */
+.market-intro{padding:16px 14px 6px;text-align:center}
+.market-lore{font-size:var(--fs-md);color:var(--text2);font-style:italic;line-height:1.5}
+.base-notice{margin:0 14px 4px;padding:12px 16px;background:rgba(0,82,255,.06);border:1px solid var(--b-base);border-radius:10px;font-size:var(--fs-md);color:var(--text2);text-align:center;line-height:1.5}
+.base-notice span{color:var(--base-l);cursor:pointer;font-style:normal}
+.market-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px 16px}
+.mcard{background:var(--surface);border:1.5px solid var(--b1);border-radius:14px;padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.mcard:active{transform:scale(.96)}
+.mcard.usdc-card{border-color:rgba(0,82,255,.3)}
+.mcard.eth-card{border-color:rgba(100,200,150,.3)}
+.mcard::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(157,78,221,.06),transparent);pointer-events:none}
+.mbadge{position:absolute;top:8px;right:8px;font-family:'Cinzel Decorative',serif;font-size:var(--fs-xs);letter-spacing:.5px;padding:3px 7px;border-radius:20px}
+.mbadge.cursed{background:rgba(230,57,70,.7);color:#ffd0d0}
+.mbadge.relic{background:rgba(6,214,160,.2);color:var(--teal);border:1px solid var(--b-teal)}
+.micon{font-size:34px}
+.mname{font-family:'Cinzel Decorative',serif;font-size:var(--fs-sm);color:var(--text);text-align:center}
+.mdesc{font-size:var(--fs-sm);color:var(--text2);text-align:center;line-height:1.4;font-style:italic}
+.mprice{display:flex;align-items:center;gap:5px;padding:6px 14px;border-radius:20px;border:1px solid;font-family:'Cinzel Decorative',serif;font-size:var(--fs-sm);cursor:pointer}
+.mprice.usdc{border-color:rgba(0,82,255,.4);color:var(--base-l);background:rgba(0,82,255,.1)}
+.mprice.eth{border-color:rgba(100,200,150,.4);color:#80ffb0;background:rgba(100,200,150,.08)}
+
+/* GRIMOIRE */
+.grimoire-list{padding:0 14px;display:flex;flex-direction:column;gap:10px}
+.gcard{background:var(--surface);border:1.5px solid var(--b1);border-radius:14px;padding:14px 16px;display:flex;align-items:flex-start;gap:14px}
+.gicon{font-size:28px;flex-shrink:0;margin-top:2px}
+.ginfo{flex:1}
+.gname{font-family:'Cinzel Decorative',serif;font-size:var(--fs-md);color:var(--text);margin-bottom:4px}
+.gdesc{font-size:var(--fs-md);color:var(--text2);font-style:italic;line-height:1.4}
+.gprog-track{margin-top:7px;height:5px;border-radius:3px;background:var(--surface2);border:1px solid var(--b1);overflow:hidden}
+.gprog-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--violet),var(--crimson))}
+.gprog-lbl{font-size:var(--fs-xs);color:var(--text3);margin-top:3px;font-style:italic}
+.gside{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.greward{font-family:'Cinzel Decorative',serif;font-size:var(--fs-sm);color:var(--amber)}
+.gbtn{padding:6px 14px;border-radius:20px;border:1px solid;font-family:'Cormorant Garamond',serif;font-size:var(--fs-md);font-style:italic;cursor:pointer;white-space:nowrap}
+.gbtn.go{border-color:var(--violet);color:var(--violet-ll);background:rgba(157,78,221,.1)}
+.gbtn.done{border-color:var(--text4);color:var(--text4);cursor:default}
+.gbtn.claim{border-color:var(--amber);color:var(--amber);background:rgba(255,214,10,.1)}
+
+/* NAV */
+#nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:flex;border-top:1.5px solid var(--b2);background:rgba(14,12,26,.97);backdrop-filter:blur(20px);z-index:100;padding-bottom:max(10px,env(safe-area-inset-bottom,10px))}
+.nitem{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 2px 7px;cursor:pointer;font-family:'Cinzel Decorative',serif;font-size:9px;color:var(--text4);letter-spacing:.3px;transition:color .2s}
+.nitem.active{color:var(--violet-ll)}
+.nitem.active .nicon{filter:drop-shadow(0 0 6px rgba(157,78,221,.8))}
+.nicon{font-size:20px;line-height:1}
+
+/* MODALS */
+.veil{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.veil.open{display:flex}
+.modal-box{background:var(--surface);border:1.5px solid var(--b2);border-top:2px solid var(--violet-l);border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:430px;animation:modal-rise .3s ease}
+@keyframes modal-rise{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-title{font-family:'Cinzel Decorative',serif;font-size:var(--fs-xl);color:var(--amber);text-align:center;margin-bottom:8px}
+.modal-sub{font-size:var(--fs-md);color:var(--text2);text-align:center;font-style:italic;margin-bottom:20px;line-height:1.5;white-space:pre-line}
+.mact{width:100%;padding:14px;border-radius:12px;border:1.5px solid;font-family:'Cormorant Garamond',serif;font-size:var(--fs-lg);font-style:italic;cursor:pointer;margin-bottom:10px;text-align:center;transition:all .2s}
+.mact.confirm{border-color:var(--base-l);background:rgba(0,82,255,.15);color:var(--base-l)}
+.mact.confirm-eth{border-color:#80ffb0;background:rgba(100,200,150,.1);color:#80ffb0}
+.mact.dismiss{border-color:var(--b1);background:transparent;color:var(--text3)}
+
+/* TX STATUS */
+.tx-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:300;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.tx-overlay.open{display:flex}
+.tx-spinner{width:60px;height:60px;border:3px solid var(--b2);border-top-color:var(--violet-l);border-radius:50%;animation:spin-tx .8s linear infinite}
+@keyframes spin-tx{to{transform:rotate(360deg)}}
+.tx-msg{font-family:'Cinzel Decorative',serif;font-size:var(--fs-lg);color:var(--violet-ll);text-align:center}
+.tx-sub{font-size:var(--fs-md);color:var(--text3);font-style:italic;text-align:center;max-width:280px}
+
+/* TOAST */
+#toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-8px);background:var(--surface2);border:1.5px solid var(--b2);border-radius:20px;padding:10px 20px;font-family:'Cormorant Garamond',serif;font-size:var(--fs-md);font-style:italic;color:var(--text);opacity:0;transition:all .25s;pointer-events:none;z-index:400;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+
+<body>
+<div id="atmo"></div>
+<div id="app">
+
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div>
+      <div class="tb-brand">Veilborn</div>
+      <div class="tb-sub">The Dying Realm · Base Chain</div>
+    </div>
+    <div class="tb-right">
+      <div class="tb-name" id="soulName">The Nameless</div>
+      <div class="tb-rank" id="soulRank">Wraith · I</div>
+    </div>
+  </div>
+
+  <!-- WALLET BAR -->
+  <div id="walletbar">
+    <div>
+      <div class="wallet-addr" id="walletAddr">No wallet connected</div>
+      <div class="wallet-bal" id="walletBal">Connect to enable payments</div>
+    </div>
+    <div class="connect-wallet-btn" id="connectWalletBtn" onclick="connectWallet()">Connect Wallet</div>
+  </div>
+
+  <!-- RESOURCE BAR -->
+  <div id="resbar">
+    <div class="res"><span class="res-icon">💜</span><span class="res-val rv-violet" id="ichorVal">0</span><span class="res-lbl">Ichor</span></div>
+    <div class="res"><span class="res-icon">🩸</span><span class="res-val rv-crimson" id="vitaeVal">1k</span><span class="res-lbl">Vitae</span></div>
+    <div class="res"><span class="res-icon">💀</span><span class="res-val rv-amber" id="markVal">50</span><span class="res-lbl">Marks</span></div>
+    <div class="res"><span class="res-icon">💎</span><span class="res-val rv-teal" id="usdcVal">0.00</span><span class="res-lbl">USDC</span></div>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content">
+
+    <!-- RITUAL -->
+    <div class="screen active" id="screen-ritual">
+      <div class="ritual-header">
+        <div class="ritual-title">The Bleeding Heart</div>
+        <div class="ritual-lore">Touch the heart — drain the Ichor from the realm's dying corpse</div>
+      </div>
+      <div class="drain-bar">Siphoning <strong id="drainRate">+0 ichor</strong> each hour</div>
+      <div class="heart-section">
+        <div class="heart-outer">
+          <div class="ring ring-3"></div><div class="ring ring-2"></div><div class="ring ring-1"></div>
+          <div class="heart" id="theHeart" onclick="drainHeart(event)">🖤</div>
+        </div>
+        <div class="tap-lore">— channel the void —</div>
+        <div class="vitae-wrap">
+          <div class="vitae-row">
+            <span style="font-size:15px">🩸</span>
+            <div class="vitae-track"><div class="vitae-fill" id="vitBar" style="width:100%"></div></div>
+            <span class="vitae-lbl" id="vitLbl">1000/1000</span>
+          </div>
+        </div>
+      </div>
+      <div class="sep"><div class="sep-line"></div><div class="sep-title">Dark Rites</div><div class="sep-line"></div><div class="sep-action" onclick="showScreen('market')">Acquire →</div></div>
+      <div class="rites-grid" id="ritesGrid"></div>
+    </div>
+
+    <!-- DIVINATION -->
+    <div class="screen" id="screen-divination">
+      <div class="wheel-chamber">
+        <div class="wheel-title">The Fate Wheel</div>
+        <div class="wheel-lore">Spin the ancient wheel — let the void decree your fortune</div>
+        <div class="wheel-wrap">
+          <div class="wheel-pointer"></div>
+          <canvas class="wheel-canvas" id="wheelCanvas" width="280" height="280" onclick="doSpin()"></canvas>
+          <div class="wheel-center">☽</div>
+        </div>
+        <div class="wheel-result" id="wheelResult">The wheel awaits your command...</div>
+        <button class="spin-btn" id="spinBtn" onclick="doSpin()">☽ &nbsp; Spin the Fate Wheel &nbsp; ☾</button>
+        <div class="tokens-row">Bone Tokens: <span class="token-badge" id="tokenBadge">💀 5 remaining</span><span style="color:var(--teal);font-size:13px;cursor:pointer;font-style:italic" onclick="showScreen('market')">+ obtain more</span></div>
+      </div>
+      <div class="sep"><div class="sep-line"></div><div class="sep-title">Chronicle of Fates</div><div class="sep-line"></div></div>
+      <div class="spin-log" id="spinLog"></div>
+    </div>
+
+    <!-- MAUSOLEUM -->
+    <div class="screen" id="screen-mausoleum">
+      <div class="sep" style="padding-top:16px;border-top:none"><div class="sep-line"></div><div class="sep-title">Hall of the Fallen</div><div class="sep-line"></div></div>
+      <div class="rank-tabs">
+        <div class="rank-tab active" onclick="setRankTab(this)">Eternal</div>
+        <div class="rank-tab" onclick="setRankTab(this)">Bound Souls</div>
+        <div class="rank-tab" onclick="setRankTab(this)">This Moon</div>
+      </div>
+      <div class="fallen-list" id="fallenList"></div>
+    </div>
+
+    <!-- COVENANT -->
+    <div class="screen" id="screen-covenant">
+      <div class="covenant-hero">
+        <div class="cov-icon">🕸️</div>
+        <div class="cov-title">The Blood Covenant</div>
+        <div class="cov-lore">Drag mortal souls into the Dying Realm. Every bound soul feeds your power with their eternal suffering.</div>
+        <div class="cov-rewards">
+          <div class="cov-pill"><div class="cov-val">+800</div><div class="cov-lbl">🩸 Vitae</div><div class="cov-sub">Premium soul</div></div>
+          <div class="cov-pill"><div class="cov-val">+250</div><div class="cov-lbl">🩸 Vitae</div><div class="cov-sub">Common soul</div></div>
+          <div class="cov-pill"><div class="cov-val">7%</div><div class="cov-lbl">💜 Ichor</div><div class="cov-sub">Of their drain</div></div>
+        </div>
+        <button class="copy-curse-btn" onclick="copyBindingCurse()">🕸️ &nbsp; Copy Binding Curse</button>
+      </div>
+      <div class="sep" style="margin-top:8px"><div class="sep-line"></div><div class="sep-title">Bound Souls</div><div class="sep-line"></div></div>
+      <div class="bound-list" id="boundList">
+        <div style="text-align:center;color:var(--text4);padding:20px;font-style:italic">No souls bound yet. Spread your curse.</div>
+      </div>
+    </div>
+
+    <!-- MARKET -->
+    <div class="screen" id="screen-market">
+      <div class="market-intro">
+        <div class="sep-title" style="font-size:20px;display:block;text-align:center;margin-bottom:6px">The Black Market</div>
+        <div class="market-lore">Where the desperate barter remnants of the living world for power in the dead one.</div>
+      </div>
+      <div class="base-notice">
+        💎 All payments on Base chain — instant, near-zero fees.
+        <span onclick="connectWallet()"> Connect wallet →</span>
+      </div>
+      <div class="sep" style="margin-top:4px"><div class="sep-line"></div><div class="sep-title">💎 USDC Items</div><div class="sep-line"></div></div>
+      <div class="market-grid">
+        <div class="mcard usdc-card" onclick="buyItem('vitae_surge','usdc',0.5)"><div class="mbadge cursed">CURSED</div><div class="micon">🩸</div><div class="mname">Vitae Surge</div><div class="mdesc">Flood your veins with +500 Vitae instantly</div><div class="mprice usdc">💎 $0.50 USDC</div></div>
+        <div class="mcard usdc-card" onclick="buyItem('bone_tokens','usdc',0.75)"><div class="micon">💀</div><div class="mname">Bone Tokens</div><div class="mdesc">Five more spins of the Fate Wheel</div><div class="mprice usdc">💎 $0.75 USDC</div></div>
+        <div class="mcard usdc-card" onclick="buyItem('death_marks','usdc',1.2)"><div class="micon">☠️</div><div class="mname">Death Marks</div><div class="mdesc">+100 rare marks to unlock forbidden rites</div><div class="mprice usdc">💎 $1.20 USDC</div></div>
+        <div class="mcard usdc-card" onclick="buyItem('black_tide','usdc',2)"><div class="micon">🌑</div><div class="mname">The Black Tide</div><div class="mdesc">Triple your Ichor drain for two full hours</div><div class="mprice usdc">💎 $2.00 USDC</div></div>
+      </div>
+      <div class="sep"><div class="sep-line"></div><div class="sep-title">⚗️ ETH Relics</div><div class="sep-line"></div></div>
+      <div class="market-grid">
+        <div class="mcard eth-card" onclick="buyItem('lich_phylactery','eth',0.0002)"><div class="mbadge relic">RELIC</div><div class="micon">💎</div><div class="mname">Lich Phylactery</div><div class="mdesc">Unseal the forbidden Lich dark rite</div><div class="mprice eth">⚗️ 0.0002 ETH</div></div>
+        <div class="mcard eth-card" onclick="buyItem('death_shroud','eth',0.0004)"><div class="micon">🕯️</div><div class="mname">Death Shroud</div><div class="mdesc">+50% Ichor drain for seven dark nights</div><div class="mprice eth">⚗️ 0.0004 ETH</div></div>
+        <div class="mcard eth-card" onclick="buyItem('cursed_crown','eth',0.0008)"><div class="micon">👑</div><div class="mname">Cursed Crown</div><div class="mdesc">Legendary undead sovereign skin</div><div class="mprice eth">⚗️ 0.0008 ETH</div></div>
+        <div class="mcard eth-card" onclick="buyItem('void_pact','eth',0.002)"><div class="micon">🌌</div><div class="mname">The Void Pact</div><div class="mdesc">Permanent 2× drain and the Void Lord title</div><div class="mprice eth">⚗️ 0.002 ETH</div></div>
+      </div>
+    </div>
+
+    <!-- GRIMOIRE -->
+    <div class="screen" id="screen-grimoire">
+      <div class="sep" style="padding-top:16px;border-top:none"><div class="sep-line"></div><div class="sep-title">The Grimoire</div><div class="sep-line"></div></div>
+      <div class="grimoire-list" id="grimoireList"></div>
+    </div>
+
+  </div>
+
+  <!-- NAV -->
+  <div id="nav">
+    <div class="nitem active" onclick="showScreen('ritual')"><span class="nicon">🖤</span>Ritual</div>
+    <div class="nitem" onclick="showScreen('divination')"><span class="nicon">☽</span>Divination</div>
+    <div class="nitem" onclick="showScreen('mausoleum')"><span class="nicon">🏛️</span>Mausoleum</div>
+    <div class="nitem" onclick="showScreen('covenant')"><span class="nicon">🕸️</span>Covenant</div>
+    <div class="nitem" onclick="showScreen('market')"><span class="nicon">🗡️</span>Market</div>
+    <div class="nitem" onclick="showScreen('grimoire')"><span class="nicon">📖</span>Grimoire</div>
+  </div>
+</div>
+
+<!-- PURCHASE MODAL -->
+<div class="veil" id="buyModal">
+  <div class="modal-box">
+    <div class="modal-title" id="mTitle">Seal the Pact</div>
+    <div class="modal-sub" id="mSub">This cannot be undone.</div>
+    <button class="mact confirm" id="mConfirm" onclick="confirmPurchase()">Seal the Bargain</button>
+    <button class="mact dismiss" onclick="closeBuyModal()">Flee the Market</button>
+  </div>
+</div>
+
+<!-- TX STATUS -->
+<div class="tx-overlay" id="txOverlay">
+  <div class="tx-spinner"></div>
+  <div class="tx-msg" id="txMsg">Processing Transaction</div>
+  <div class="tx-sub" id="txSub">Please confirm in your wallet...</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════
+// CONFIG — set your API URL here
+// ════════════════════════════════════════
+const API_BASE = 'YOUR_RAILWAY_URL'; // e.g. https://veilborn-fc-production.up.railway.app
+
+// Base chain contract addresses
+const USDC_ADDRESS   = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'; // USDC on Base mainnet
+const VAULT_ADDRESS  = '0x0a34ec7e4e2691d0a403acd885366699ee9fe901'; // your wallet that receives payments
+
+// ════════════════════════════════════════
+// FARCASTER SDK INIT
+// ════════════════════════════════════════
+let fcSDK  = null;
+let fcUser = null;
+let fcWallet = null;
+let walletAddress = null;
+
+async function initFarcaster(){
+  try {
+    fcSDK = window.farcaster?.sdk || window.FrameSDK;
+    if(fcSDK){
+      await fcSDK.actions.ready();
+      const ctx = await fcSDK.context;
+      fcUser = ctx?.user;
+      if(fcUser){
+        document.getElementById('soulName').textContent = fcUser.displayName || fcUser.username || 'The Nameless';
+      }
+      // Check if wallet already connected
+      const addresses = await fcSDK.wallet.ethProvider?.request({method:'eth_accounts'}).catch(()=>[]);
+      if(addresses && addresses.length > 0){
+        walletAddress = addresses[0];
+        updateWalletUI(walletAddress);
+      }
+    }
+  } catch(e) {
+    console.warn('Farcaster SDK not available:', e);
+  }
+}
+
+async function connectWallet(){
+  try {
+    if(fcSDK && fcSDK.wallet){
+      const provider = fcSDK.wallet.ethProvider;
+      const accounts = await provider.request({method:'eth_requestAccounts'});
+      if(accounts && accounts.length > 0){
+        walletAddress = accounts[0];
+        updateWalletUI(walletAddress);
+        showToast('💎 Wallet bound to your soul!');
+        // Fetch USDC balance
+        fetchUSDCBalance(walletAddress);
+        // Save wallet to server
+        await callAPI('/save_wallet', {wallet: walletAddress});
+      }
+    } else {
+      showToast('Open in Farcaster to connect wallet');
+    }
+  } catch(e) {
+    console.error('Wallet connect error:', e);
+    showToast('❌ Could not connect wallet');
+  }
+}
+
+function updateWalletUI(addr){
+  const short = addr.slice(0,6)+'...'+addr.slice(-4);
+  document.getElementById('walletAddr').textContent = '💎 ' + short;
+  document.getElementById('connectWalletBtn').textContent = 'Connected ✓';
+  document.getElementById('connectWalletBtn').style.color = 'var(--teal)';
+  document.getElementById('connectWalletBtn').style.borderColor = 'var(--b-teal)';
+}
+
+async function fetchUSDCBalance(addr){
+  try {
+    const provider = fcSDK?.wallet?.ethProvider;
+    if(!provider) return;
+    // USDC balanceOf call
+    const data = '0x70a08231' + addr.slice(2).padStart(64,'0');
+    const result = await provider.request({
+      method: 'eth_call',
+      params: [{to: USDC_ADDRESS, data}, 'latest']
+    });
+    const balance = parseInt(result, 16) / 1e6; // USDC has 6 decimals
+    document.getElementById('usdcVal').textContent = balance.toFixed(2);
+    document.getElementById('walletBal').textContent = `${balance.toFixed(2)} USDC on Base`;
+  } catch(e) {
+    console.warn('Balance fetch error:', e);
+  }
+}
+
+// ════════════════════════════════════════
+// GAME DATA
+// ════════════════════════════════════════
+const RITES = [
+  {id:'necrosis',  name:'Necrosis Hymn',   em:'🦴', lvl:1, baseCost:500,   rate:60,   unlocked:true},
+  {id:'exsang',    name:'Exsanguination',  em:'🩸', lvl:0, baseCost:1200,  rate:120,  unlocked:true},
+  {id:'soulrend',  name:'Soul Rendering',  em:'💜', lvl:0, baseCost:3000,  rate:300,  unlocked:true},
+  {id:'wraith',    name:'Wraith Binding',  em:'👻', lvl:0, baseCost:50,    rate:600,  unlocked:false, mc:50},
+  {id:'lich',      name:'Lich Communion',  em:'💀', lvl:0, baseCost:120,   rate:1200, unlocked:false, mc:120},
+  {id:'voidpull',  name:'Void Invocation', em:'🌌', lvl:0, baseCost:300,   rate:3000, unlocked:false, mc:300},
+];
+
+const TITLES = [
+  {min:0,t:'Wraith',r:'I'},{min:5,t:'Shade',r:'II'},{min:15,t:'Revenant',r:'III'},
+  {min:30,t:'Banshee',r:'IV'},{min:50,t:'Lich',r:'V'},{min:75,t:'Dread Lord',r:'VI'},{min:100,t:'Void Walker',r:'VII'},
+];
+
+const QUESTS = [
+  {id:'drain100',em:'🖤',n:'First Blood',       d:'Drain the heart 100 times',       rw:'5,000 💜',  p:37, m:100,   s:'active'},
+  {id:'rites3',  em:'🦴',n:'Rite Practitioner', d:'Perform 3 dark rite upgrades',     rw:'💀 20 Marks',p:1,  m:3,     s:'active'},
+  {id:'spin5',   em:'☽', n:'Fate Tempted',      d:'Spin the wheel 5 times',           rw:'2 Tokens',  p:0,  m:5,     s:'active'},
+  {id:'bind1',   em:'🕸️',n:'Soul Binder',       d:'Bind 1 soul to your covenant',     rw:'800 🩸',    p:0,  m:1,     s:'active'},
+  {id:'vigil',   em:'🕯️',n:'The Dark Vigil',    d:'Enter the Dying Realm today',      rw:'1,000 💜',  p:1,  m:1,     s:'claim'},
+  {id:'herald',  em:'👁️',n:'Whisperer of Void', d:'Cast a Veilborn frame',            rw:'500 💜',    p:0,  m:1,     s:'active'},
+];
+
+const WHEEL_SEGS = [
+  {label:'💀 Jackpot',  reward:60000, color:'#3a006f', glow:'#9d4edd', weight:1},
+  {label:'🩸 Blood',    reward:8000,  color:'#5a0010', glow:'#e63946', weight:4},
+  {label:'💜 Ichor',    reward:4000,  color:'#2a1860', glow:'#c77dff', weight:5},
+  {label:'☽ Moonfall', reward:2000,  color:'#1a1640', glow:'#a78bfa', weight:7},
+  {label:'🦴 Bones',    reward:800,   color:'#1e1030', glow:'#8870c0', weight:10},
+  {label:'🌑 Void',     reward:0,     color:'#0e0c1a', glow:'#4a3870', weight:8},
+  {label:'⭐ Starfall', reward:15000, color:'#2a1a00', glow:'#ffd60a', weight:2},
+  {label:'🕯️ Flicker', reward:400,   color:'#1a1228', glow:'#7060a0', weight:10},
+];
+
+let G = {
+  ichor:0, vitae:1000, maxVitae:1000,
+  marks:50, usdc:0,
+  level:1, xp:0, tokens:5,
+  spinHistory:[],
+  rites: RITES.map(r=>({...r})),
+  boosts:{drainMulti:1},
+  lastSave:Date.now(),
+};
+
+let pendingBuy = null;
+let isSpinning = false;
+let wheelAngle = 0;
+
+// ════════════════════════════════════════
+// API
+// ════════════════════════════════════════
+async function callAPI(endpoint, body){
+  const fid  = fcUser?.fid || 0;
+  const name = fcUser?.username || fcUser?.displayName || 'Soul';
+  const payload = {...body, fid, username:name, wallet:walletAddress||''};
+  try {
+    const res = await fetch(API_BASE + endpoint, {
+      method:'POST', mode:'cors',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    const text = await res.text();
+    let data;
+    try{ data = JSON.parse(text); } catch(e){ throw new Error('Bad response: '+text.slice(0,80)); }
+    if(!res.ok) throw new Error(data.error || 'Server error '+res.status);
+    return data;
+  } catch(e){
+    console.error('API error:', e);
+    throw e;
+  }
+}
+
+async function syncToServer(){
+  if(!API_BASE || API_BASE.includes('YOUR_RAILWAY')) return;
+  try {
+    await callAPI('/sync_state',{
+      mana:G.ichor, energy:G.vitae, level:G.level,
+      xp:G.xp, spinTickets:G.tokens, hourlyRate:getHourly()
+    });
+  } catch(e){ console.warn('Sync failed:', e); }
+}
+
+async function refreshFromServer(){
+  if(!API_BASE || API_BASE.includes('YOUR_RAILWAY')) return;
+  try {
+    const d = await callAPI('/get_state',{});
+    if(d.energy !== undefined){ G.vitae=d.energy; G.maxVitae=d.max_energy||G.maxVitae; }
+    if(d.crystals !== undefined) G.marks = d.crystals;
+    if(d.spin_tickets !== undefined){ G.tokens=d.spin_tickets; updateTokenBadge(); }
+    updateAllUI(); buildRites();
+    showToast('✅ Soul restored from the void.');
+  } catch(e){ console.warn('Refresh failed:', e); }
+}
+
+// ════════════════════════════════════════
+// BASE CHAIN PAYMENTS
+// ════════════════════════════════════════
+async function buyItem(item, currency, amount){
+  if(!walletAddress){
+    showToast('Connect your wallet first!');
+    await connectWallet();
+    return;
+  }
+  pendingBuy = {item, currency, amount};
+  const names = {
+    vitae_surge:'Vitae Surge', bone_tokens:'Bone Tokens',
+    death_marks:'Death Marks', black_tide:'The Black Tide',
+    lich_phylactery:'Lich Phylactery', death_shroud:'Death Shroud',
+    cursed_crown:'Cursed Crown', void_pact:'The Void Pact'
+  };
+  const isUSDC = currency === 'usdc';
+  document.getElementById('mTitle').textContent = isUSDC ? '💎 USDC Payment' : '⚗️ ETH Payment';
+  document.getElementById('mSub').textContent =
+    `Purchase: ${names[item]||item}\nAmount: ${isUSDC ? '$'+amount+' USDC' : amount+' ETH'}\n\nPayment goes to Base chain.\nItem applied automatically after confirmation.`;
+  document.getElementById('mConfirm').textContent = isUSDC ? `💎 Pay $${amount} USDC` : `⚗️ Pay ${amount} ETH`;
+  document.getElementById('mConfirm').className = 'mact ' + (isUSDC ? 'confirm' : 'confirm-eth');
+  document.getElementById('buyModal').classList.add('open');
+}
+
+async function confirmPurchase(){
+  if(!pendingBuy) return;
+  const {item, currency, amount} = pendingBuy;
+  closeBuyModal();
+  showTxOverlay('Preparing Transaction', 'Building your payment...');
+
+  try {
+    const provider = fcSDK?.wallet?.ethProvider;
+    if(!provider) throw new Error('No wallet provider available');
+
+    // Switch to Base chain (chainId 8453)
+    try {
+      await provider.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: '0x2105' }] // 8453 in hex
+      });
+    } catch(switchErr) {
+      // Add Base chain if not found
+      if(switchErr.code === 4902){
+        await provider.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: '0x2105',
+            chainName: 'Base',
+            nativeCurrency: {name:'Ethereum', symbol:'ETH', decimals:18},
+            rpcUrls: ['https://mainnet.base.org'],
+            blockExplorerUrls: ['https://basescan.org'],
+          }]
+        });
+      }
+    }
+
+    let txHash;
+
+    if(currency === 'usdc'){
+      // USDC transfer on Base
+      updateTxOverlay('Sending USDC', 'Confirm in your wallet...');
+      const amountWei = BigInt(Math.round(amount * 1e6)); // USDC = 6 decimals
+      const transferData = '0xa9059cbb' +
+        VAULT_ADDRESS.slice(2).padStart(64,'0') +
+        amountWei.toString(16).padStart(64,'0');
+
+      txHash = await provider.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: walletAddress,
+          to: USDC_ADDRESS,
+          data: transferData,
+          chainId: '0x2105',
+        }]
+      });
+    } else {
+      // ETH transfer on Base
+      updateTxOverlay('Sending ETH', 'Confirm in your wallet...');
+      const amountWei = BigInt(Math.round(amount * 1e18));
+      txHash = await provider.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: walletAddress,
+          to: VAULT_ADDRESS,
+          value: '0x' + amountWei.toString(16),
+          chainId: '0x2105',
+        }]
+      });
+    }
+
+    updateTxOverlay('Transaction Sent', `Hash: ${txHash.slice(0,16)}...\nWaiting for confirmation...`);
+
+    // Notify server to watch for this transaction
+    await callAPI('/register_payment', {
+      item, currency, amount,
+      tx_hash: txHash,
+      wallet: walletAddress,
+    });
+
+    // Poll for confirmation
+    await waitForConfirmation(txHash, provider);
+
+    hideTxOverlay();
+    showToast('⚗️ Pact sealed! Applying your power...');
+    await refreshFromServer();
+
+  } catch(e) {
+    hideTxOverlay();
+    if(e.code === 4001){
+      showToast('Transaction cancelled.');
+    } else {
+      console.error('Payment error:', e);
+      showToast('❌ Payment failed: ' + e.message);
+    }
+  }
+  pendingBuy = null;
+}
+
+async function waitForConfirmation(txHash, provider, maxAttempts=30){
+  for(let i=0; i<maxAttempts; i++){
+    await new Promise(r=>setTimeout(r, 2000));
+    try {
+      const receipt = await provider.request({
+        method: 'eth_getTransactionReceipt',
+        params: [txHash]
+      });
+      if(receipt && receipt.status === '0x1'){
+        return true; // confirmed
+      }
+    } catch(e){ /* keep polling */ }
+    updateTxOverlay('Confirming on Base', `Attempt ${i+1}/${maxAttempts}...`);
+  }
+  throw new Error('Transaction confirmation timeout');
+}
+
+function showTxOverlay(msg, sub){
+  document.getElementById('txMsg').textContent = msg;
+  document.getElementById('txSub').textContent = sub;
+  document.getElementById('txOverlay').classList.add('open');
+}
+function updateTxOverlay(msg, sub){
+  document.getElementById('txMsg').textContent = msg;
+  document.getElementById('txSub').textContent = sub;
+}
+function hideTxOverlay(){
+  document.getElementById('txOverlay').classList.remove('open');
+}
+function closeBuyModal(){
+  document.getElementById('buyModal').classList.remove('open');
+  pendingBuy = null;
+}
+
+// ════════════════════════════════════════
+// DRAIN (tap)
+// ════════════════════════════════════════
+function drainHeart(e){
+  if(G.vitae <= 0){ showToast('🩸 No Vitae — the heart refuses you.'); return; }
+  const gain = Math.ceil(15 * getDrainMult() * G.boosts.drainMulti);
+  G.ichor += gain; G.vitae = Math.max(0, G.vitae-10); G.xp++;
+  checkLevel(); updateAllUI();
+  const fl = document.createElement('div');
+  fl.className='dmg'; fl.textContent='+'+fmt(gain);
+  const h=document.getElementById('theHeart'), r=h.getBoundingClientRect();
+  fl.style.left=(r.left+r.width/2-20+(Math.random()-.5)*40)+'px';
+  fl.style.top=(r.top-10)+'px';
+  document.body.appendChild(fl); setTimeout(()=>fl.remove(),1000);
+  h.classList.add('pulse'); setTimeout(()=>h.classList.remove('pulse'),200);
+}
+
+function getDrainMult(){ return G.rites.reduce((a,r)=>a+r.lvl*r.rate/60,1); }
+function getHourly(){    return Math.round(G.rites.reduce((a,r)=>a+r.lvl*r.rate,0)*G.boosts.drainMulti); }
+
+setInterval(()=>{ G.ichor+=getHourly()/3600; updateResUI(); },1000);
+setInterval(()=>{ if(G.vitae<G.maxVitae){ G.vitae=Math.min(G.maxVitae,G.vitae+1); updateVitaeUI(); }},1000);
+setInterval(syncToServer, 30000);
+
+// ════════════════════════════════════════
+// RITES
+// ════════════════════════════════════════
+function riteCost(r){ return Math.floor(r.baseCost*Math.pow(1.65,r.lvl)); }
+
+function upgradeRite(id){
+  const r=G.rites.find(x=>x.id===id); if(!r) return;
+  if(!r.unlocked){
+    const c=r.mc||50;
+    if(G.marks<c){ showToast('Insufficient Death Marks.'); return; }
+    G.marks-=c; r.unlocked=true; r.lvl=1;
+    showToast('🦴 '+r.name+' awakened!');
+  } else {
+    const c=riteCost(r);
+    if(G.ichor<c){ showToast('Insufficient Soul Ichor.'); return; }
+    G.ichor-=c; r.lvl++;
+    showToast('💜 '+r.name+' deepened to level '+r.lvl);
+  }
+  checkLevel(); buildRites(); updateAllUI();
+}
+
+function buildRites(){
+  const g=document.getElementById('ritesGrid'); g.innerHTML='';
+  G.rites.forEach(r=>{
+    const cost=r.unlocked?riteCost(r):null;
+    const aff=r.unlocked?G.ichor>=cost:G.marks>=(r.mc||50);
+    const d=document.createElement('div');
+    d.className='rite'+(aff?' can-afford':'')+(!r.unlocked?' locked':'');
+    d.onclick=()=>upgradeRite(r.id);
+    d.innerHTML=`<div class="rite-em">${r.em}</div><div class="rite-name">${r.name}</div><div class="rite-depth">${r.unlocked?'Depth '+r.lvl:'⛓ Sealed'}</div><div class="rite-yield">${r.unlocked?'+'+fmt(r.lvl*r.rate)+'/hr':'+'+r.rate+'/hr'}</div><div class="rite-cost ${r.unlocked?'ichor':'marks'}">${r.unlocked?'💜 '+fmt(cost):'💀 '+(r.mc||50)}</div>`;
+    g.appendChild(d);
+  });
+}
+
+// ════════════════════════════════════════
+// FATE WHEEL
+// ════════════════════════════════════════
+function drawWheel(angle){
+  const canvas=document.getElementById('wheelCanvas');
+  const ctx=canvas.getContext('2d');
+  const cx=140,cy=140,radius=135;
+  const total=WHEEL_SEGS.reduce((a,s)=>a+s.weight,0);
+  ctx.clearRect(0,0,280,280);
+  let startAngle=angle-Math.PI/2;
+  WHEEL_SEGS.forEach(seg=>{
+    const arc=(seg.weight/total)*Math.PI*2;
+    const end=startAngle+arc;
+    const mid=startAngle+arc/2;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,radius,startAngle,end); ctx.closePath();
+    const grad=ctx.createRadialGradient(cx,cy,20,cx,cy,radius);
+    grad.addColorStop(0,seg.color); grad.addColorStop(1,shadeColor(seg.color,-20));
+    ctx.fillStyle=grad; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,radius,startAngle,end); ctx.closePath();
+    ctx.strokeStyle='rgba(157,78,221,0.3)'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(mid); ctx.textAlign='right';
+    ctx.font='bold 13px Cinzel Decorative,serif'; ctx.fillStyle='#f0e6ff';
+    ctx.shadowColor=seg.glow; ctx.shadowBlur=8;
+    ctx.fillText(seg.label,radius-12,5); ctx.restore();
+    startAngle=end;
+  });
+  ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2);
+  ctx.strokeStyle='rgba(157,78,221,0.5)'; ctx.lineWidth=2; ctx.stroke();
+}
+
+function shadeColor(hex,pct){
+  const num=parseInt(hex.slice(1),16);
+  const r=Math.min(255,Math.max(0,(num>>16)+pct));
+  const g=Math.min(255,Math.max(0,((num>>8)&0xff)+pct));
+  const b=Math.min(255,Math.max(0,(num&0xff)+pct));
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+
+function getSegAtAngle(finalAngle){
+  const total=WHEEL_SEGS.reduce((a,s)=>a+s.weight,0);
+  const ptr=((-finalAngle)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
+  let acc=0;
+  for(const seg of WHEEL_SEGS){
+    const arc=(seg.weight/total)*Math.PI*2;
+    if(ptr>=acc && ptr<acc+arc) return seg;
+    acc+=arc;
+  }
+  return WHEEL_SEGS[WHEEL_SEGS.length-1];
+}
+
+function doSpin(){
+  if(isSpinning) return;
+  if(G.tokens<=0){ showToast('No Bone Tokens — obtain more in the Market.'); return; }
+  isSpinning=true; G.tokens--; updateTokenBadge();
+  document.getElementById('spinBtn').disabled=true;
+  document.getElementById('wheelResult').textContent='The wheel turns through the void...';
+  document.getElementById('wheelResult').className='wheel-result';
+  const totalSpins=5+Math.random()*4;
+  const extraAngle=Math.random()*Math.PI*2;
+  const targetAngle=wheelAngle+totalSpins*Math.PI*2+extraAngle;
+  const duration=4000+Math.random()*1500;
+  const startTime=performance.now();
+  const startAngle=wheelAngle;
+  function easeOut(t){ return 1-Math.pow(1-t,4); }
+  function animate(now){
+    const p=Math.min((now-startTime)/duration,1);
+    wheelAngle=startAngle+(targetAngle-startAngle)*easeOut(p);
+    drawWheel(wheelAngle);
+    if(p<1){ requestAnimationFrame(animate); }
+    else{ wheelAngle=targetAngle%(Math.PI*2); resolveWheel(wheelAngle); }
+  }
+  requestAnimationFrame(animate);
+}
+
+function resolveWheel(finalAngle){
+  const seg=getSegAtAngle(finalAngle);
+  let msg='',cls='';
+  if(seg.reward>0){
+    G.ichor+=seg.reward*G.boosts.drainMulti;
+    msg=seg.reward>=15000?'🌟 FATE ALIGNED — '+fmt(seg.reward)+' Ichor pours forth!':seg.label+' — +'+fmt(seg.reward)+' Ichor';
+    cls=seg.reward>=15000?'jackpot':'win';
+  } else { msg='The void offers nothing. Fate is cruel.'; }
+  document.getElementById('wheelResult').textContent=msg;
+  document.getElementById('wheelResult').className='wheel-result '+cls;
+  G.spinHistory.unshift({seg:seg.label,reward:seg.reward,win:seg.reward>0});
+  if(G.spinHistory.length>10) G.spinHistory.pop();
+  buildSpinLog();
+  document.getElementById('spinBtn').disabled=G.tokens<=0;
+  updateAllUI(); isSpinning=false;
+}
+
+function buildSpinLog(){
+  const el=document.getElementById('spinLog');
+  if(!G.spinHistory.length){
+    el.innerHTML='<div style="text-align:center;color:var(--text4);font-size:14px;padding:20px;font-style:italic">The chronicle is empty...</div>';
+    return;
+  }
+  el.innerHTML='';
+  G.spinHistory.forEach(h=>{
+    const d=document.createElement('div'); d.className='spin-entry';
+    d.innerHTML=`<span class="spin-seg">${h.seg}</span><span class="spin-prize ${h.win?'win':'loss'}">${h.win?'+'+fmt(h.reward)+' 💜':'Silence'}</span>`;
+    el.appendChild(d);
+  });
+}
+
+function updateTokenBadge(){ document.getElementById('tokenBadge').textContent='💀 '+G.tokens+' remaining'; }
+
+// ════════════════════════════════════════
+// LEADERBOARD
+// ════════════════════════════════════════
+function buildFallen(){
+  const el=document.getElementById('fallenList'); el.innerHTML='';
+  const medals=['rn-gold','rn-silver','rn-bronze'];
+  const nums=['I','II','III'];
+  // Will be populated from server — show player row only for now
+  const t=getTitle();
+  const d=document.createElement('div'); d.className='fallen-row me';
+  const nm=fcUser?.displayName||fcUser?.username||'You';
+  d.innerHTML=`<span class="rank-num rn-other">—</span><div class="fallen-av">🖤</div><div class="fallen-info"><div class="fallen-name" style="color:var(--violet-ll)">${nm}</div><div class="fallen-title">${t.t} · Lv ${G.level}</div></div><div class="fallen-souls" style="color:var(--violet-ll)">${fmt(Math.floor(G.ichor))} 💜</div>`;
+  el.appendChild(d);
+  // Load real leaderboard from server
+  loadLeaderboard();
+}
+
+async function loadLeaderboard(){
+  if(!API_BASE||API_BASE.includes('YOUR_RAILWAY')) return;
+  try {
+    const data = await callAPI('/leaderboard',{});
+    const el=document.getElementById('fallenList');
+    el.innerHTML='';
+    const medals=['rn-gold','rn-silver','rn-bronze'];
+    const nums=['I','II','III'];
+    (data.players||[]).forEach((p,i)=>{
+      const d=document.createElement('div');
+      const isSelf = p.fid && fcUser && p.fid===fcUser.fid;
+      d.className='fallen-row'+(isSelf?' me':'');
+      const mc=medals[i]||'rn-other';
+      const num=i<3?nums[i]:(i+1);
+      d.innerHTML=`<span class="rank-num ${mc}">${num}</span><div class="fallen-av">${p.em||'👤'}</div><div class="fallen-info"><div class="fallen-name"${isSelf?' style="color:var(--violet-ll)"':''}>${p.name||'Soul'}</div><div class="fallen-title">${p.title||'Wraith'} · Lv ${p.level||1}</div></div><div class="fallen-souls">${fmt(p.ichor||0)} 💜</div>`;
+      el.appendChild(d);
+    });
+  } catch(e){ console.warn('Leaderboard load failed:', e); }
+}
+
+function setRankTab(el){ document.querySelectorAll('.rank-tab').forEach(t=>t.classList.remove('active')); el.classList.add('active'); buildFallen(); }
+
+// ════════════════════════════════════════
+// GRIMOIRE
+// ════════════════════════════════════════
+function buildGrimoire(){
+  const el=document.getElementById('grimoireList'); el.innerHTML='';
+  QUESTS.forEach(q=>{
+    const pct=Math.min(100,Math.round(q.p/q.m*100));
+    const d=document.createElement('div'); d.className='gcard';
+    let btn='';
+    if(q.s==='active')     btn=`<button class="gbtn go" onclick="questGo('${q.id}')">Seek →</button>`;
+    else if(q.s==='claim') btn=`<button class="gbtn claim" onclick="claimQuest('${q.id}',this)">Claim!</button>`;
+    else                   btn=`<button class="gbtn done">✓ Fulfilled</button>`;
+    d.innerHTML=`<div class="gicon">${q.em}</div><div class="ginfo"><div class="gname">${q.n}</div><div class="gdesc">${q.d}</div><div class="gprog-track"><div class="gprog-fill" style="width:${pct}%"></div></div><div class="gprog-lbl">${q.p>=q.m?'Complete':fmt(q.p)+' / '+fmt(q.m)}</div></div><div class="gside"><div class="greward">${q.rw}</div>${btn}</div>`;
+    el.appendChild(d);
+  });
+}
+
+function questGo(id){ if(id==='spin5')showScreen('divination'); else if(id==='bind1')showScreen('covenant'); else showScreen('ritual'); }
+function claimQuest(id,btn){ G.ichor+=1000; showToast('🕯️ Quest fulfilled! +1,000 Ichor granted.'); btn.closest('.gcard').querySelector('.gbtn').outerHTML='<button class="gbtn done">✓ Fulfilled</button>'; updateAllUI(); }
+
+// ════════════════════════════════════════
+// COVENANT (Farcaster cast sharing)
+// ════════════════════════════════════════
+function copyBindingCurse(){
+  const fid = fcUser?.fid || 'demo';
+  const link = `https://veilborn.app?ref=${fid}`; // update to your domain
+  navigator.clipboard?.writeText(link).catch(()=>{});
+  // Also share as a Farcaster cast
+  if(fcSDK){
+    fcSDK.actions.openUrl(`https://warpcast.com/~/compose?text=I+am+draining+the+Dying+Realm+in+Veilborn+%F0%9F%96%A4+Join+my+covenant%3A+${encodeURIComponent(link)}`);
+  }
+  showToast('🕸️ Binding curse copied and cast!');
+}
+
+// ════════════════════════════════════════
+// LEVEL
+// ════════════════════════════════════════
+function checkLevel(){
+  const need=G.level*100;
+  if(G.xp>=need){ G.xp-=need; G.level++; G.maxVitae+=50; showToast('🌑 You have deepened into '+getTitle().t+' — Level '+G.level); }
+  const t=getTitle();
+  document.getElementById('soulRank').textContent=t.t+' · '+t.r;
+}
+function getTitle(){ let t=TITLES[0]; TITLES.forEach(r=>{ if(G.level>=r.min)t=r; }); return t; }
+
+// ════════════════════════════════════════
+// UI
+// ════════════════════════════════════════
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name)?.classList.add('active');
+  const order=['ritual','divination','mausoleum','covenant','market','grimoire'];
+  document.querySelectorAll('.nitem').forEach(n=>n.classList.remove('active'));
+  const idx=order.indexOf(name);
+  if(idx>=0) document.querySelectorAll('.nitem')[idx]?.classList.add('active');
+  document.getElementById('content').scrollTop=0;
+  if(name==='mausoleum') buildFallen();
+}
+function updateAllUI(){ updateResUI(); updateVitaeUI(); document.getElementById('drainRate').textContent='+'+fmt(getHourly())+' ichor'; }
+function updateResUI(){
+  document.getElementById('ichorVal').textContent=fmt(Math.floor(G.ichor));
+  document.getElementById('vitaeVal').textContent=fmt(Math.floor(G.vitae));
+  document.getElementById('markVal').textContent=fmt(Math.floor(G.marks));
+  document.getElementById('usdcVal').textContent=G.usdc.toFixed(2);
+}
+function updateVitaeUI(){
+  const p=(G.vitae/G.maxVitae*100).toFixed(1);
+  document.getElementById('vitBar').style.width=p+'%';
+  document.getElementById('vitLbl').textContent=Math.floor(G.vitae)+'/'+G.maxVitae;
+}
+function fmt(n){ if(n>=1000000)return(n/1000000).toFixed(1)+'M'; if(n>=1000)return(n/1000).toFixed(1)+'k'; return Math.floor(n).toString(); }
+let toastTimer=null;
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2600); }
+
+// ════════════════════════════════════════
+// PERSIST
+// ════════════════════════════════════════
+function saveState(){ try{ localStorage.setItem('veilborn_fc',JSON.stringify({...G,lastSave:Date.now()})); }catch(e){} }
+function loadState(){
+  try{
+    const s=localStorage.getItem('veilborn_fc');
+    if(s){
+      const sv=JSON.parse(s);
+      const hrs=Math.min((Date.now()-sv.lastSave)/3600000,8);
+      const offline=hrs*(sv.rites||[]).reduce((a,r)=>a+r.lvl*r.rate,0)*0.5;
+      Object.assign(G,sv); G.ichor+=offline; G.lastSave=Date.now();
+    }
+  }catch(e){}
+}
+setInterval(saveState,15000);
+
+// ════════════════════════════════════════
+// ATMOSPHERE
+// ════════════════════════════════════════
+function buildAtmosphere(){
+  const el=document.getElementById('atmo');
+  [{c:'rgba(157,78,221,0.08)',w:'300px',h:'300px',l:'60%',t:'10%',dur:'8s'},
+   {c:'rgba(230,57,70,0.06)', w:'250px',h:'250px',l:'10%',t:'50%',dur:'11s'},
+   {c:'rgba(255,214,10,0.04)',w:'200px',h:'200px',l:'40%',t:'70%',dur:'9s'}]
+  .forEach(o=>{ const d=document.createElement('div'); d.className='orb-bg'; d.style.cssText=`background:${o.c};width:${o.w};height:${o.h};left:${o.l};top:${o.t};animation-duration:${o.dur}`; el.appendChild(d); });
+  const cols=['rgba(157,78,221,','rgba(230,57,70,','rgba(255,214,10,'];
+  for(let i=0;i<20;i++){
+    const d=document.createElement('div'); d.className='particle';
+    const c=cols[Math.floor(Math.random()*cols.length)],sz=1+Math.random()*2.5;
+    d.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;background:${c}${.4+Math.random()*.5});animation-delay:${Math.random()*7}s;animation-duration:${5+Math.random()*8}s`;
+    el.appendChild(d);
+  }
+  const chars=['ℌ','𝔙','𝔒','𝔐','𝔚','ℜ','𝔇','ℭ'];
+  for(let i=0;i<8;i++){
+    const d=document.createElement('div'); d.className='sigil-bg';
+    d.textContent=chars[i%chars.length];
+    d.style.cssText=`left:${5+Math.random()*85}%;top:${5+Math.random()*85}%;font-size:${50+Math.random()*80}px;animation-delay:${Math.random()*8}s;animation-duration:${7+Math.random()*6}s`;
+    el.appendChild(d);
+  }
+}
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+async function init(){
+  loadState();
+  buildAtmosphere();
+  buildRites();
+  buildFallen();
+  buildGrimoire();
+  buildSpinLog();
+  drawWheel(0);
+  updateAllUI();
+  await initFarcaster();
+}
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
