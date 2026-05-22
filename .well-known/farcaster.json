@@ -1,0 +1,17 @@
+{
+  "accountAssociation": {
+    "header": "",
+    "payload": "",
+    "signature": ""
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "Veilborn",
+    "iconUrl": "https://veilborn-fc-game.vercel.app/icon.png",
+    "splashImageUrl": "https://veilborn-fc-game.vercel.app/icon.png",
+    "splashBackgroundColor": "#0e0c1a",
+    "homeUrl": "https://veilborn-fc-game.vercel.app",
+    "subtitle": "Drain the Dying Realm",
+    "description": "A gothic tap-to-earn game on Base chain."
+  }
+}
